@@ -1,0 +1,23 @@
+{
+  "name": "task_master-different_structure",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "author": "",
+  "type": "module",
+  "main": "R:/Dev IT/Node/Task_Master-different_structure/src/app/index.js",
+  "scripts": {
+    "start": "nodemon R:/Dev IT/Node/Task_Master-different_structure/src/app/index.js"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "joi": "^18.0.1",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.15.1",
+    "nodemon": "^3.1.10",
+    "router": "^2.2.0",
+    "sequelize": "^6.37.7"
+  }
+}
