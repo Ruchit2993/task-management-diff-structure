@@ -1,6 +1,6 @@
 import StatusMaster from './status-master.model.js';
 import messages from '../../helper/constants/messages.js';
-import { successResponse, errorResponse } from '../../helper/responce-builder/responseBuilder.js';
+import ResponseBuilder from '../../helper/responce-builder/responseBuilder.js';
 import { validateStatus, validateStatusUpdate, validateStatusPatch } from './statusValidation.js';
 
 const getAllStatuses = async (req, res) => {
@@ -9,9 +9,9 @@ const getAllStatuses = async (req, res) => {
       attributes: ['id', 'code', 'name', 'status', 'createdAt', 'updatedAt'],
       where: { deleted: 0 },
     });
-    successResponse(res, 200, messages.SUCCESS.STATUS_RETRIEVED, { statuses });
+    ResponseBuilder.success(res, 200, messages.SUCCESS.STATUS_RETRIEVED, { statuses });
   } catch (error) {
-    errorResponse(res, 500, messages.ERROR.SERVER_ERROR, error.message);
+    ResponseBuilder.error(res, 500, messages.ERROR.SERVER_ERROR, error.message);
   }
 };
 
@@ -21,7 +21,7 @@ const getStatusByCode = async (req, res) => {
 
     // Check if id is provided
     if (!id) {
-      return errorResponse(res, 400, messages.ERROR.VALIDATION_ERROR, '"id" or "code" is required');
+      return ResponseBuilder.error(res, 400, messages.ERROR.VALIDATION_ERROR, '"id" or "code" is required');
     }
 
     let status;
@@ -42,19 +42,19 @@ const getStatusByCode = async (req, res) => {
     }
 
     if (!status) {
-      return errorResponse(res, 404, messages.ERROR.STATUS_NOT_FOUND);
+      return ResponseBuilder.error(res, 404, messages.ERROR.STATUS_NOT_FOUND);
     }
 
-    successResponse(res, 200, messages.SUCCESS.STATUS_RETRIEVED, { status });
+    ResponseBuilder.success(res, 200, messages.SUCCESS.STATUS_RETRIEVED, { status });
   } catch (error) {
-    errorResponse(res, 500, messages.ERROR.SERVER_ERROR, error.message);
+    ResponseBuilder.error(res, 500, messages.ERROR.SERVER_ERROR, error.message);
   }
 };
 
 const createStatus = async (req, res) => {
   const { error } = validateStatus(req.body);
   if (error) {
-    return errorResponse(res, 400, messages.ERROR.VALIDATION_ERROR, error.details[0].message);
+    return ResponseBuilder.error(res, 400, messages.ERROR.VALIDATION_ERROR, error.details[0].message);
   }
 
   const { code, name } = req.body;
@@ -62,7 +62,7 @@ const createStatus = async (req, res) => {
   try {
     const existingStatus = await StatusMaster.findOne({ where: { code, deleted: 0 } });
     if (existingStatus) {
-      return errorResponse(res, 400, messages.ERROR.CODE_EXISTS);
+      return ResponseBuilder.error(res, 400, messages.ERROR.CODE_EXISTS);
     }
 
     const status = await StatusMaster.create({
@@ -73,9 +73,9 @@ const createStatus = async (req, res) => {
       deleted: 0,
     });
 
-    successResponse(res, 201, messages.SUCCESS.STATUS_CREATED, { status });
+    ResponseBuilder.success(res, 201, messages.SUCCESS.STATUS_CREATED, { status });
   } catch (error) {
-    errorResponse(res, 500, messages.ERROR.SERVER_ERROR, error.message);
+    ResponseBuilder.error(res, 500, messages.ERROR.SERVER_ERROR, error.message);
   }
 };
 
@@ -83,7 +83,7 @@ const updateStatus = async (req, res) => {
   const { code } = req.params;
   const { error } = validateStatusUpdate(req.body);
   if (error) {
-    return errorResponse(res, 400, messages.ERROR.VALIDATION_ERROR, error.details[0].message);
+    return ResponseBuilder.error(res, 400, messages.ERROR.VALIDATION_ERROR, error.details[0].message);
   }
 
   const { code: newCode, name, status } = req.body;
@@ -91,7 +91,7 @@ const updateStatus = async (req, res) => {
   try {
     const existingStatus = await StatusMaster.findOne({ where: { code, deleted: 0 } });
     if (!existingStatus) {
-      return errorResponse(res, 404, messages.ERROR.STATUS_NOT_FOUND);
+      return ResponseBuilder.error(res, 404, messages.ERROR.STATUS_NOT_FOUND);
     }
 
     const updateData = {
@@ -102,9 +102,9 @@ const updateStatus = async (req, res) => {
     };
 
     await existingStatus.update(updateData);
-    successResponse(res, 200, messages.SUCCESS.STATUS_UPDATED, { status: existingStatus });
+    ResponseBuilder.success(res, 200, messages.SUCCESS.STATUS_UPDATED, { status: existingStatus });
   } catch (error) {
-    errorResponse(res, 500, messages.ERROR.SERVER_ERROR, error.message);
+    ResponseBuilder.error(res, 500, messages.ERROR.SERVER_ERROR, error.message);
   }
 };
 
@@ -112,7 +112,7 @@ const patchStatus = async (req, res) => {
   const { code } = req.params;
   const { error } = validateStatusPatch(req.body);
   if (error) {
-    return errorResponse(res, 400, messages.ERROR.VALIDATION_ERROR, error.details[0].message);
+    return ResponseBuilder.error(res, 400, messages.ERROR.VALIDATION_ERROR, error.details[0].message);
   }
 
   const { code: newCode, name, status } = req.body;
@@ -120,7 +120,7 @@ const patchStatus = async (req, res) => {
   try {
     const existingStatus = await StatusMaster.findOne({ where: { code, deleted: 0 } });
     if (!existingStatus) {
-      return errorResponse(res, 404, messages.ERROR.STATUS_NOT_FOUND);
+      return ResponseBuilder.error(res, 404, messages.ERROR.STATUS_NOT_FOUND);
     }
 
     const updateData = { updatedBy: req.user.id };
@@ -129,9 +129,9 @@ const patchStatus = async (req, res) => {
     if (status !== undefined) updateData.status = status;
 
     await existingStatus.update(updateData);
-    successResponse(res, 200, messages.SUCCESS.STATUS_UPDATED, { status: existingStatus });
+    ResponseBuilder.success(res, 200, messages.SUCCESS.STATUS_UPDATED, { status: existingStatus });
   } catch (error) {
-    errorResponse(res, 500, messages.ERROR.SERVER_ERROR, error.message);
+    ResponseBuilder.error(res, 500, messages.ERROR.SERVER_ERROR, error.message);
   }
 };
 
@@ -141,7 +141,7 @@ const deleteStatus = async (req, res) => {
   try {
     const status = await StatusMaster.findOne({ where: { code, deleted: 0 } });
     if (!status) {
-      return errorResponse(res, 404, messages.ERROR.STATUS_NOT_FOUND);
+      return ResponseBuilder.error(res, 404, messages.ERROR.STATUS_NOT_FOUND);
     }
 
     await status.update({
@@ -150,9 +150,9 @@ const deleteStatus = async (req, res) => {
       deletedAt: new Date(),
       deletedBy: req.user.id,
     });
-    successResponse(res, 200, messages.SUCCESS.STATUS_DELETED);
+    ResponseBuilder.success(res, 200, messages.SUCCESS.STATUS_DELETED);
   } catch (error) {
-    errorResponse(res, 500, messages.ERROR.SERVER_ERROR, error.message);
+    ResponseBuilder.error(res, 500, messages.ERROR.SERVER_ERROR, error.message);
   }
 };
 

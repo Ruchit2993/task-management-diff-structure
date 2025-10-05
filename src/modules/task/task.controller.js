@@ -5,7 +5,7 @@ import User from '../user/user.model.js';
 import Comment from '../comments/comments.model.js';
 import { sequelize } from '../../config/dbConnect.js';
 import messages from '../../helper/constants/messages.js';
-import { successResponse, errorResponse } from '../../helper/responce-builder/responseBuilder.js';
+import ResponseBuilder from '../../helper/responce-builder/responseBuilder.js';
 import { validateTask, validateTaskUpdate, validateTaskPatch } from './taskValidation.js';
 
 const getAllTasks = async (req, res) => {
@@ -19,9 +19,9 @@ const getAllTasks = async (req, res) => {
       where,
       include: [{ model: StatusMaster, attributes: ['code', 'name'], where: { deleted: 0 } }],
     });
-    successResponse(res, 200, messages.SUCCESS.TASK_RETRIEVED, { tasks });
+    ResponseBuilder.success(res, 200, messages.SUCCESS.TASK_RETRIEVED, { tasks });
   } catch (error) {
-    errorResponse(res, 500, messages.ERROR.SERVER_ERROR, error.message);
+    ResponseBuilder.error(res, 500, messages.ERROR.SERVER_ERROR, error.message);
   }
 };
 
@@ -34,11 +34,11 @@ const getTasksByStatus = async (req, res) => {
       include: [{ model: StatusMaster, attributes: ['code', 'name'], where: { deleted: 0 } }],
     });
     if (tasks.length === 0) {
-      return errorResponse(res, 404, messages.ERROR.TASK_NOT_FOUND);
+      return ResponseBuilder.error(res, 404, messages.ERROR.TASK_NOT_FOUND);
     }
-    successResponse(res, 200, messages.SUCCESS.TASK_RETRIEVED, { tasks });
+    ResponseBuilder.success(res, 200, messages.SUCCESS.TASK_RETRIEVED, { tasks });
   } catch (error) {
-    errorResponse(res, 500, messages.ERROR.SERVER_ERROR, error.message);
+    ResponseBuilder.error(res, 500, messages.ERROR.SERVER_ERROR, error.message);
   }
 };
 
@@ -51,18 +51,18 @@ const getTaskById = async (req, res) => {
       include: [{ model: StatusMaster, attributes: ['code', 'name'], where: { deleted: 0 } }],
     });
     if (!task) {
-      return errorResponse(res, 404, messages.ERROR.TASK_NOT_FOUND);
+      return ResponseBuilder.error(res, 404, messages.ERROR.TASK_NOT_FOUND);
     }
-    successResponse(res, 200, messages.SUCCESS.TASK_RETRIEVED, { task });
+    ResponseBuilder.success(res, 200, messages.SUCCESS.TASK_RETRIEVED, { task });
   } catch (error) {
-    errorResponse(res, 500, messages.ERROR.SERVER_ERROR, error.message);
+    ResponseBuilder.error(res, 500, messages.ERROR.SERVER_ERROR, error.message);
   }
 };
 
 const createTask = async (req, res) => {
   const { error } = validateTask(req.body);
   if (error) {
-    return errorResponse(res, 400, messages.ERROR.VALIDATION_ERROR, error.details[0].message);
+    return ResponseBuilder.error(res, 400, messages.ERROR.VALIDATION_ERROR, error.details[0].message);
   }
 
   const { name, description, due_date, status, teamMembers } = req.body;
@@ -71,7 +71,7 @@ const createTask = async (req, res) => {
     const taskStatus = status || 'TO_DO';
     const statusExists = await StatusMaster.findOne({ where: { code: taskStatus, deleted: 0 } });
     if (!statusExists) {
-      return errorResponse(res, 400, messages.ERROR.INVALID_STATUS, `Status '${taskStatus}' does not exist. Available statuses: ${await StatusMaster.findAll({ attributes: ['code'], where: { deleted: 0 } }).then(statuses => statuses.map(s => s.code).join(', '))}`);
+      return ResponseBuilder.error(res, 400, messages.ERROR.INVALID_STATUS, `Status '${taskStatus}' does not exist. Available statuses: ${await StatusMaster.findAll({ attributes: ['code'], where: { deleted: 0 } }).then(statuses => statuses.map(s => s.code).join(', '))}`);
     }
 
     if (teamMembers && Array.isArray(teamMembers) && teamMembers.length > 0) {
@@ -79,7 +79,7 @@ const createTask = async (req, res) => {
         where: { id: teamMembers, deleted: 0 },
       });
       if (users.length !== teamMembers.length) {
-        return errorResponse(res, 400, messages.ERROR.INVALID_TEAM_MEMBERS);
+        return ResponseBuilder.error(res, 400, messages.ERROR.INVALID_TEAM_MEMBERS);
       }
     }
 
@@ -109,9 +109,9 @@ const createTask = async (req, res) => {
       return newTask;
     });
 
-    successResponse(res, 201, messages.SUCCESS.TASK_CREATED, { task });
+    ResponseBuilder.success(res, 201, messages.SUCCESS.TASK_CREATED, { task });
   } catch (error) {
-    errorResponse(res, 500, messages.ERROR.SERVER_ERROR, error.message);
+    ResponseBuilder.error(res, 500, messages.ERROR.SERVER_ERROR, error.message);
   }
 };
 
@@ -119,7 +119,7 @@ const updateTask = async (req, res) => {
   const { id } = req.params;
   const { error } = validateTaskUpdate(req.body);
   if (error) {
-    return errorResponse(res, 400, messages.ERROR.VALIDATION_ERROR, error.details[0].message);
+    return ResponseBuilder.error(res, 400, messages.ERROR.VALIDATION_ERROR, error.details[0].message);
   }
 
   const { name, description, status, due_date } = req.body;
@@ -127,13 +127,13 @@ const updateTask = async (req, res) => {
   try {
     const task = await Task.findOne({ where: { id, deleted: 0 } });
     if (!task) {
-      return errorResponse(res, 404, messages.ERROR.TASK_NOT_FOUND);
+      return ResponseBuilder.error(res, 404, messages.ERROR.TASK_NOT_FOUND);
     }
 
     if (status) {
       const statusExists = await StatusMaster.findOne({ where: { code: status, deleted: 0 } });
       if (!statusExists) {
-        return errorResponse(res, 400, messages.ERROR.INVALID_STATUS);
+        return ResponseBuilder.error(res, 400, messages.ERROR.INVALID_STATUS);
       }
     }
 
@@ -146,9 +146,9 @@ const updateTask = async (req, res) => {
     };
 
     await task.update(updateData);
-    successResponse(res, 200, messages.SUCCESS.TASK_UPDATED, { task });
+    ResponseBuilder.success(res, 200, messages.SUCCESS.TASK_UPDATED, { task });
   } catch (error) {
-    errorResponse(res, 500, messages.ERROR.SERVER_ERROR, error.message);
+    ResponseBuilder.error(res, 500, messages.ERROR.SERVER_ERROR, error.message);
   }
 };
 
@@ -156,7 +156,7 @@ const patchTask = async (req, res) => {
   const { id } = req.params;
   const { error } = validateTaskPatch(req.body, req.user.isAdmin);
   if (error) {
-    return errorResponse(res, 400, messages.ERROR.VALIDATION_ERROR, error.details[0].message);
+    return ResponseBuilder.error(res, 400, messages.ERROR.VALIDATION_ERROR, error.details[0].message);
   }
 
   const { name, description, status, due_date, comment } = req.body;
@@ -164,18 +164,18 @@ const patchTask = async (req, res) => {
   try {
     const task = await Task.findOne({ where: { id, deleted: 0 } });
     if (!task) {
-      return errorResponse(res, 404, messages.ERROR.TASK_NOT_FOUND);
+      return ResponseBuilder.error(res, 404, messages.ERROR.TASK_NOT_FOUND);
     }
 
     if (req.user.isAdmin) {
       if (comment) {
-        return errorResponse(res, 400, messages.ERROR.ADMIN_COMMENT_NOT_ALLOWED);
+        return ResponseBuilder.error(res, 400, messages.ERROR.ADMIN_COMMENT_NOT_ALLOWED);
       }
 
       if (status) {
         const statusExists = await StatusMaster.findOne({ where: { code: status, deleted: 0 } });
         if (!statusExists) {
-          return errorResponse(res, 400, messages.ERROR.INVALID_STATUS, `Status '${status}' does not exist. Available statuses: ${await StatusMaster.findAll({ attributes: ['code'], where: { deleted: 0 } }).then(statuses => statuses.map(s => s.code).join(', '))}`);
+          return ResponseBuilder.error(res, 400, messages.ERROR.INVALID_STATUS, `Status '${status}' does not exist. Available statuses: ${await StatusMaster.findAll({ attributes: ['code'], where: { deleted: 0 } }).then(statuses => statuses.map(s => s.code).join(', '))}`);
         }
       }
 
@@ -189,22 +189,22 @@ const patchTask = async (req, res) => {
         await task.update(updateData);
       }
 
-      successResponse(res, 200, messages.SUCCESS.TASK_UPDATED, { task });
+      ResponseBuilder.success(res, 200, messages.SUCCESS.TASK_UPDATED, { task });
     } else {
       // Non-admin: Allow status and/or comment, but comment is required if status is provided
       if (name || description !== undefined || due_date) {
-        return errorResponse(res, 400, messages.ERROR.NON_ADMIN_TASK_FIELDS_NOT_ALLOWED);
+        return ResponseBuilder.error(res, 400, messages.ERROR.NON_ADMIN_TASK_FIELDS_NOT_ALLOWED);
       }
 
       if (status && !comment) {
-        return errorResponse(res, 400, messages.ERROR.COMMENT_REQUIRED_FOR_STATUS, 'Comment is required when updating status for non-admin users');
+        return ResponseBuilder.error(res, 400, messages.ERROR.COMMENT_REQUIRED_FOR_STATUS, 'Comment is required when updating status for non-admin users');
       }
 
       const updates = [];
       if (status) {
         const statusExists = await StatusMaster.findOne({ where: { code: status, deleted: 0 } });
         if (!statusExists) {
-          return errorResponse(res, 400, messages.ERROR.INVALID_STATUS, `Status '${status}' does not exist. Available statuses: ${await StatusMaster.findAll({ attributes: ['code'], where: { deleted: 0 } }).then(statuses => statuses.map(s => s.code).join(', '))}`);
+          return ResponseBuilder.error(res, 400, messages.ERROR.INVALID_STATUS, `Status '${status}' does not exist. Available statuses: ${await StatusMaster.findAll({ attributes: ['code'], where: { deleted: 0 } }).then(statuses => statuses.map(s => s.code).join(', '))}`);
         }
         await task.update({ status, updatedBy: req.user.id });
         updates.push('status');
@@ -221,10 +221,10 @@ const patchTask = async (req, res) => {
         updates.push('comment');
       }
 
-      successResponse(res, 200, updates.includes('status') ? messages.SUCCESS.TASK_UPDATED : messages.SUCCESS.COMMENT_ADDED, { task });
+      ResponseBuilder.success(res, 200, updates.includes('status') ? messages.SUCCESS.TASK_UPDATED : messages.SUCCESS.COMMENT_ADDED, { task });
     }
   } catch (error) {
-    errorResponse(res, 500, messages.ERROR.SERVER_ERROR, error.message);
+    ResponseBuilder.error(res, 500, messages.ERROR.SERVER_ERROR, error.message);
   }
 };
 
@@ -234,7 +234,7 @@ const deleteTask = async (req, res) => {
   try {
     const task = await Task.findOne({ where: { id, deleted: 0 } });
     if (!task) {
-      return errorResponse(res, 404, messages.ERROR.TASK_NOT_FOUND);
+      return ResponseBuilder.error(res, 404, messages.ERROR.TASK_NOT_FOUND);
     }
 
     await task.update({
@@ -242,9 +242,9 @@ const deleteTask = async (req, res) => {
       deletedAt: new Date(),
       deletedBy: req.user.id,
     });
-    successResponse(res, 200, messages.SUCCESS.TASK_DELETED);
+    ResponseBuilder.success(res, 200, messages.SUCCESS.TASK_DELETED);
   } catch (error) {
-    errorResponse(res, 500, messages.ERROR.SERVER_ERROR, error.message);
+    ResponseBuilder.error(res, 500, messages.ERROR.SERVER_ERROR, error.message);
   }
 };
 

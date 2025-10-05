@@ -1,7 +1,7 @@
 import User from './user.model.js';
 import messages from '../../helper/constants/messages.js';
 import bcrypt from 'bcrypt';
-import { successResponse, errorResponse } from '../../helper/responce-builder/responseBuilder.js';
+import ResponseBuilder from '../../helper/responce-builder/responseBuilder.js';
 import { validateUser, validateUserUpdate, validateUserPatch } from './userValidation.js';
 
 const getAllUsers = async (req, res) => {
@@ -10,9 +10,9 @@ const getAllUsers = async (req, res) => {
       attributes: ['id', 'name', 'email', 'contact', 'isAdmin', 'isFirstLogin', 'status', 'createdAt', 'updatedAt'],
       where: { deleted: 0 },
     });
-    successResponse(res, 200, messages.SUCCESS.USER_RETRIEVED, { users });
+    ResponseBuilder.success(res, 200, messages.SUCCESS.USER_RETRIEVED, { users });
   } catch (error) {
-    errorResponse(res, 500, messages.ERROR.SERVER_ERROR, error.message);
+    ResponseBuilder.error(res, 500, messages.ERROR.SERVER_ERROR, error.message);
   }
 };
 
@@ -26,12 +26,12 @@ const getUserById = async (req, res) => {
     });
 
     if (!user) {
-      return errorResponse(res, 404, messages.ERROR.USER_NOT_FOUND);
+      return ResponseBuilder.error(res, 404, messages.ERROR.USER_NOT_FOUND);
     }
 
-    successResponse(res, 200, messages.SUCCESS.USER_RETRIEVED, { user });
+    ResponseBuilder.success(res, 200, messages.SUCCESS.USER_RETRIEVED, { user });
   } catch (error) {
-    errorResponse(res, 500, messages.ERROR.SERVER_ERROR, error.message);
+    ResponseBuilder.error(res, 500, messages.ERROR.SERVER_ERROR, error.message);
   }
 };
 
@@ -39,7 +39,7 @@ const updateUser = async (req, res) => {
   const { id } = req.params;
   const { error } = validateUserUpdate(req.body);
   if (error) {
-    return errorResponse(res, 400, messages.ERROR.VALIDATION_ERROR, error.details[0].message);
+    return ResponseBuilder.error(res, 400, messages.ERROR.VALIDATION_ERROR, error.details[0].message);
   }
 
   const { name, email, contact, password } = req.body;
@@ -47,7 +47,7 @@ const updateUser = async (req, res) => {
   try {
     const user = await User.findOne({ where: { id, deleted: 0 } });
     if (!user) {
-      return errorResponse(res, 404, messages.ERROR.USER_NOT_FOUND);
+      return ResponseBuilder.error(res, 404, messages.ERROR.USER_NOT_FOUND);
     }
 
     const updateData = {
@@ -62,9 +62,9 @@ const updateUser = async (req, res) => {
     }
 
     await user.update(updateData);
-    successResponse(res, 200, messages.SUCCESS.USER_UPDATED, { user });
+    ResponseBuilder.success(res, 200, messages.SUCCESS.USER_UPDATED, { user });
   } catch (error) {
-    errorResponse(res, 500, messages.ERROR.SERVER_ERROR, error.message);
+    ResponseBuilder.error(res, 500, messages.ERROR.SERVER_ERROR, error.message);
   }
 };
 
@@ -72,7 +72,7 @@ const patchUser = async (req, res) => {
   const { id } = req.params;
   const { error } = validateUserPatch(req.body);
   if (error) {
-    return errorResponse(res, 400, messages.ERROR.VALIDATION_ERROR, error.details[0].message);
+    return ResponseBuilder.error(res, 400, messages.ERROR.VALIDATION_ERROR, error.details[0].message);
   }
 
   const { name, email, contact, password } = req.body;
@@ -80,7 +80,7 @@ const patchUser = async (req, res) => {
   try {
     const user = await User.findOne({ where: { id, deleted: 0 } });
     if (!user) {
-      return errorResponse(res, 404, messages.ERROR.USER_NOT_FOUND);
+      return ResponseBuilder.error(res, 404, messages.ERROR.USER_NOT_FOUND);
     }
 
     const updateData = { updatedBy: req.user.id };
@@ -90,9 +90,9 @@ const patchUser = async (req, res) => {
     if (password) updateData.password = await bcrypt.hash(password, 10);
 
     await user.update(updateData);
-    successResponse(res, 200, messages.SUCCESS.USER_UPDATED, { user });
+    ResponseBuilder.success(res, 200, messages.SUCCESS.USER_UPDATED, { user });
   } catch (error) {
-    errorResponse(res, 500, messages.ERROR.SERVER_ERROR, error.message);
+    ResponseBuilder.error(res, 500, messages.ERROR.SERVER_ERROR, error.message);
   }
 };
 
@@ -102,7 +102,7 @@ const deleteUser = async (req, res) => {
   try {
     const user = await User.findOne({ where: { id, deleted: 0 } });
     if (!user) {
-      return errorResponse(res, 404, messages.ERROR.USER_NOT_FOUND);
+      return ResponseBuilder.error(res, 404, messages.ERROR.USER_NOT_FOUND);
     }
 
     await user.update({
@@ -110,9 +110,9 @@ const deleteUser = async (req, res) => {
       deletedAt: new Date(),
       deletedBy: req.user.id,
     });
-    successResponse(res, 200, messages.SUCCESS.USER_DELETED);
+    ResponseBuilder.success(res, 200, messages.SUCCESS.USER_DELETED);
   } catch (error) {
-    errorResponse(res, 500, messages.ERROR.SERVER_ERROR, error.message);
+    ResponseBuilder.error(res, 500, messages.ERROR.SERVER_ERROR, error.message);
   }
 };
 
