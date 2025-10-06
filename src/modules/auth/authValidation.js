@@ -1,3 +1,5 @@
+import messages from "../../helper/constants/messages.js";
+
 const validateEmail = (email) => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return typeof email === 'string' && email.length <= 50 && emailRegex.test(email);
@@ -8,22 +10,22 @@ const validateRegister = (data) => {
 
   // Validate name (required, string, 3-50 chars)
   if (!data.name || typeof data.name !== 'string' || data.name.length < 3 || data.name.length > 50) {
-    errors.push({ message: 'name is required and must be a string between 3 and 50 characters' });
+    errors.push({ message: messages.VALIDATION.NAME_INVALID });
   }
 
   // Validate email (required, valid email, max 50 chars)
   if (!data.email || !validateEmail(data.email)) {
-    errors.push({ message: 'email is required and must be a valid email address with max 50 characters' });
+    errors.push({ message: messages.VALIDATION.EMAIL_INVALID });
   }
 
   // Validate contact (optional, string, 9-12 chars, nullable)
   if (data.contact !== undefined && data.contact !== null && (typeof data.contact !== 'string' || data.contact.length < 9 || data.contact.length > 12)) {
-    errors.push({ message: 'contact must be a string between 9 and 12 characters or null' });
+    errors.push({ message: messages.VALIDATION.CONTACT_INVALID });
   }
 
   // Validate password (required, string, min 6 chars)
   if (!data.password || typeof data.password !== 'string' || data.password.length < 6) {
-    errors.push({ message: 'password is required and must be a string with at least 6 characters' });
+    errors.push({ message: messages.VALIDATION.PASSWORD_INVALID });
   }
 
   return errors.length > 0 ? { error: { details: errors } } : { error: null, validatedData: data };
@@ -34,12 +36,12 @@ const validateLogin = (data) => {
 
   // Validate email (required, valid email, max 50 chars)
   if (!data.email || !validateEmail(data.email)) {
-    errors.push({ message: 'email is required and must be a valid email address with max 50 characters' });
+    errors.push({ message: messages.VALIDATION.EMAIL_INVALID });
   }
 
   // Validate password (required, string, min 6 chars)
   if (!data.password || typeof data.password !== 'string' || data.password.length < 6) {
-    errors.push({ message: 'password is required and must be a string with at least 6 characters' });
+    errors.push({ message: messages.VALIDATION.PASSWORD_INVALID });
   }
 
   return errors.length > 0 ? { error: { details: errors } } : { error: null, validatedData: data };
@@ -50,12 +52,12 @@ const validateChangePassword = (data) => {
 
   // Validate email (required, valid email, max 50 chars)
   if (!data.email || !validateEmail(data.email)) {
-    errors.push({ message: 'email is required and must be a valid email address with max 50 characters' });
+    errors.push({ message: messages.VALIDATION.EMAIL_INVALID });
   }
 
   // Validate newPassword (required, string, min 6 chars)
   if (!data.newPassword || typeof data.newPassword !== 'string' || data.newPassword.length < 6) {
-    errors.push({ message: 'newPassword is required and must be a string with at least 6 characters' });
+    errors.push({ message: messages.VALIDATION.NEWPASSWORD_INVALID });
   }
 
   return errors.length > 0 ? { error: { details: errors } } : { error: null, validatedData: data };
@@ -66,7 +68,7 @@ const validateFirstChangePassword = (data) => {
 
   // Validate newPassword (required, string, min 6 chars)
   if (!data.newPassword || typeof data.newPassword !== 'string' || data.newPassword.length < 6) {
-    errors.push({ message: 'newPassword is required and must be a string with at least 6 characters' });
+    errors.push({ message: messages.VALIDATION.NEWPASSWORD_INVALID });
   }
 
   return errors.length > 0 ? { error: { details: errors } } : { error: null, validatedData: data };
@@ -77,7 +79,7 @@ const validateForgotPassword = (data) => {
 
   // Validate email (required, valid email, max 50 chars)
   if (!data.email || !validateEmail(data.email)) {
-    errors.push({ message: 'email is required and must be a valid email address with max 50 characters' });
+    errors.push({ message: messages.VALIDATION.EMAIL_INVALID });
   }
 
   return errors.length > 0 ? { error: { details: errors } } : { error: null, validatedData: data };
@@ -88,22 +90,15 @@ const validateResetPassword = (data) => {
 
   // Validate email (required, valid email, max 50 chars)
   if (!data.email || !validateEmail(data.email)) {
-    errors.push({ message: 'email is required and must be a valid email address with max 50 characters' });
+    errors.push({ message: messages.VALIDATION.EMAIL_INVALID });
   }
 
   // Validate newPassword (required, string, min 6 chars)
   if (!data.newPassword || typeof data.newPassword !== 'string' || data.newPassword.length < 6) {
-    errors.push({ message: 'newPassword is required and must be a string with at least 6 characters' });
+    errors.push({ message: messages.VALIDATION.NEWPASSWORD_INVALID });
   }
 
   return errors.length > 0 ? { error: { details: errors } } : { error: null, validatedData: data };
 };
 
-export {
-  validateRegister,
-  validateLogin,
-  validateChangePassword,
-  validateFirstChangePassword,
-  validateForgotPassword,
-  validateResetPassword,
-};
+export { validateRegister, validateLogin, validateChangePassword, validateFirstChangePassword, validateForgotPassword, validateResetPassword };
