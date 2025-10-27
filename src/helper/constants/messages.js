@@ -48,7 +48,7 @@ const messages = {
     EMAIL_REQUIRED: "Email is required.",
     PASS_REQUIRED: "Password is required.",
     CONTACT_REQUIRED: "Contact is required.",
-    INVALID_STATUS: "Invalid status code.",
+    INVALID_STATUS: "Invalid status code Or status does not exist.",
     NOT_FIRST_LOGIN: "This endpoint is only for first-time password changes.",
     INVALID_TEAM_MEMBERS: "One or more team member IDs are invalid or do not exist.",
     CHANGE_PASS: "Please change your password first",

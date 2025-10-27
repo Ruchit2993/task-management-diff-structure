@@ -17,9 +17,6 @@ testConnection();
 // await sequelize.sync({force: true}); 
 await sequelize.sync({alter: true}); 
 
-console.log(process.env.JWT_SECRET)
-
-
 app.listen(PORT, () => {
     console.log(`Server is running at port : ${PORT}`);
 });

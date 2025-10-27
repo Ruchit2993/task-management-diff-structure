@@ -48,7 +48,7 @@ const register = async (req, res) => {
 const login = async (req, res) => {
   const { error } = validateLogin(req.body);
   if (error) {
-    return ResponseBuilder.error(res, 400, messages.ERROR.VALIDATION_ERROR, error.details[0].message);
+    return ResponseBuilder.error(res, 400, messages.ERROR.VALIDATION_ERROR, error);
   }
 
   const { email, password } = req.body;
@@ -66,7 +66,7 @@ const login = async (req, res) => {
 
     const token = jwt.sign(
       { id: user.id, isAdmin: user.isAdmin, email: user.email },
-      process.env.JWT_SECRET || 'task_management_secret',
+      process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );
 
@@ -77,7 +77,7 @@ const login = async (req, res) => {
 };
 
 const changePassword = async (req, res) => {
-  const { error } = validateChangePassword(req.body);
+  const { error } = validateChangePassword(req.body); 
   if (error) {
     return ResponseBuilder.error(res, 400, messages.ERROR.VALIDATION_ERROR, error.details[0].message);
   }
@@ -87,7 +87,7 @@ const changePassword = async (req, res) => {
   try {
     // Ensure the email matches the authenticated user's email
     if (email !== req.user.email) {
-      return ResponseBuilder.error(res, 403, messages.ERROR.UNAUTHORIZED, 'You can only change your own password');
+      return ResponseBuilder.error(res, 403, messages.ERROR.UNAUTHORIZED);
     }
 
     // Find the user
@@ -159,7 +159,12 @@ const forgotPassword = async (req, res) => {
       return ResponseBuilder.error(res, 404, messages.ERROR.USER_NOT_FOUND);
     }
 
-    ResponseBuilder.success(res, 200, messages.ERROR.REDIRECT_CHANGE_PASS);
+    const token = jwt.sign(
+      { id: user.id, isAdmin: user.isAdmin, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+    ResponseBuilder.success(res, 200, messages.ERROR.REDIRECT_CHANGE_PASS, { token });
   } catch (error) {
     ResponseBuilder.error(res, 500, messages.ERROR.SERVER_ERROR, error.message);
   }

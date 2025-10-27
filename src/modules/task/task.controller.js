@@ -71,7 +71,7 @@ const createTask = async (req, res) => {
     const taskStatus = status || 'TO_DO';
     const statusExists = await StatusMaster.findOne({ where: { code: taskStatus, deleted: 0 } });
     if (!statusExists) {
-      return ResponseBuilder.error(res, 400, messages.ERROR.INVALID_STATUS, `Status '${taskStatus}' does not exist. Available statuses: ${await StatusMaster.findAll({ attributes: ['code'], where: { deleted: 0 } }).then(statuses => statuses.map(s => s.code).join(', '))}`);
+      return ResponseBuilder.error(res, 400, messages.ERROR.INVALID_STATUS);
     }
 
     if (teamMembers && Array.isArray(teamMembers) && teamMembers.length > 0) {
@@ -175,7 +175,7 @@ const patchTask = async (req, res) => {
       if (status) {
         const statusExists = await StatusMaster.findOne({ where: { code: status, deleted: 0 } });
         if (!statusExists) {
-          return ResponseBuilder.error(res, 400, messages.ERROR.INVALID_STATUS, `Status '${status}' does not exist. Available statuses: ${await StatusMaster.findAll({ attributes: ['code'], where: { deleted: 0 } }).then(statuses => statuses.map(s => s.code).join(', '))}`);
+          return ResponseBuilder.error(res, 400, messages.ERROR.INVALID_STATUS);
         }
       }
 
@@ -204,7 +204,7 @@ const patchTask = async (req, res) => {
       if (status) {
         const statusExists = await StatusMaster.findOne({ where: { code: status, deleted: 0 } });
         if (!statusExists) {
-          return ResponseBuilder.error(res, 400, messages.ERROR.INVALID_STATUS, `Status '${status}' does not exist. Available statuses: ${await StatusMaster.findAll({ attributes: ['code'], where: { deleted: 0 } }).then(statuses => statuses.map(s => s.code).join(', '))}`);
+          return ResponseBuilder.error(res, 400, messages.ERROR.INVALID_STATUS);
         }
         await task.update({ status, updatedBy: req.user.id });
         updates.push('status');

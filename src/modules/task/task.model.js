@@ -78,6 +78,5 @@ StatusMaster.hasMany(Task, { foreignKey: "status", sourceKey: "code" });
 Task.hasMany(Comment, { foreignKey: "taskId" });
 
 Comment.belongsTo(Task, { foreignKey: "taskId" });
-// Task.hasMany(Comment, { foreignKey: "taskId" });
 
 export default Task;
