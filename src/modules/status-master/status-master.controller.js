@@ -2,13 +2,11 @@ import StatusMaster from './status-master.model.js';
 import messages from '../../helper/constants/messages.js';
 import ResponseBuilder from '../../helper/responce-builder/responseBuilder.js';
 import { validateStatus, validateStatusUpdate, validateStatusPatch } from './statusValidation.js';
+import { getAllActiveStatuses, findStatusByIdOrCode, statusDbIns } from './status-master.util.js';
 
 const getAllStatuses = async (req, res) => {
   try {
-    const statuses = await StatusMaster.findAll({
-      attributes: ['id', 'code', 'name', 'status', 'createdAt', 'updatedAt'],
-      where: { deleted: 0 },
-    });
+    const statuses = await getAllActiveStatuses();
     ResponseBuilder.success(res, 200, messages.SUCCESS.STATUS_RETRIEVED, { statuses });
   } catch (error) {
     ResponseBuilder.error(res, 500, messages.ERROR.SERVER_ERROR, error.message);
@@ -24,22 +22,7 @@ const getStatusByCode = async (req, res) => {
       return ResponseBuilder.error(res, 400, messages.ERROR.VALIDATION_ERROR, '"id" or "code" is required');
     }
 
-    let status;
-
-    // Check if the input is a number (for id) or a string (for code)
-    if (!isNaN(id)) {
-      // Numerical id
-      status = await StatusMaster.findOne({ 
-        attributes: ['id', 'code', 'name', 'status', 'createdAt', 'updatedAt'],
-        where: { id: parseInt(id), deleted: 0 }
-      });
-    } else {
-      // String code
-      status = await StatusMaster.findOne({ 
-        attributes: ['id', 'code', 'name', 'status', 'createdAt', 'updatedAt'],
-        where: { code: id, deleted: 0 }
-      });
-    }
+    const status = await findStatusByIdOrCode(id);
 
     if (!status) {
       return ResponseBuilder.error(res, 404, messages.ERROR.STATUS_NOT_FOUND);
@@ -60,20 +43,16 @@ const createStatus = async (req, res) => {
   const { code, name } = req.body;
 
   try {
-    const existingStatus = await StatusMaster.findOne({ where: { code, deleted: 0 } });
+
+    const existingStatus = await findStatusByIdOrCode(code);
     if (existingStatus) {
       return ResponseBuilder.error(res, 400, messages.ERROR.CODE_EXISTS);
     }
 
-    const status = await StatusMaster.create({
-      code,
-      name,
-      status: 1,
-      createdBy: req.user.id,
-      deleted: 0,
-    });
+    const status = await statusDbIns(code, name, req.user.id)
 
     ResponseBuilder.success(res, 201, messages.SUCCESS.STATUS_CREATED, { status });
+  
   } catch (error) {
     ResponseBuilder.error(res, 500, messages.ERROR.SERVER_ERROR, error.message);
   }
@@ -89,7 +68,7 @@ const updateStatus = async (req, res) => {
   const { code: newCode, name, status } = req.body;
 
   try {
-    const existingStatus = await StatusMaster.findOne({ where: { code, deleted: 0 } });
+    const existingStatus = await findStatusByIdOrCode(code);
     if (!existingStatus) {
       return ResponseBuilder.error(res, 404, messages.ERROR.STATUS_NOT_FOUND);
     }
@@ -118,7 +97,7 @@ const patchStatus = async (req, res) => {
   const { code: newCode, name, status } = req.body;
 
   try {
-    const existingStatus = await StatusMaster.findOne({ where: { code, deleted: 0 } });
+    const existingStatus = await findStatusByIdOrCode(code);
     if (!existingStatus) {
       return ResponseBuilder.error(res, 404, messages.ERROR.STATUS_NOT_FOUND);
     }
@@ -139,7 +118,7 @@ const deleteStatus = async (req, res) => {
   const { code } = req.params;
 
   try {
-    const status = await StatusMaster.findOne({ where: { code, deleted: 0 } });
+    const status = await findStatusByIdOrCode(code);
     if (!status) {
       return ResponseBuilder.error(res, 404, messages.ERROR.STATUS_NOT_FOUND);
     }

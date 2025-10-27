@@ -7,6 +7,7 @@ import { sequelize } from '../../config/dbConnect.js';
 import messages from '../../helper/constants/messages.js';
 import ResponseBuilder from '../../helper/responce-builder/responseBuilder.js';
 import { validateTask, validateTaskUpdate, validateTaskPatch } from './taskValidation.js';
+import { getAllActiveTasks, getTaskByIdWithStatus, getTasksByStatusCode, isValidStatus, createNewTask, updateExistingTask } from './task.util.js';
 
 const getAllTasks = async (req, res) => {
   try {
@@ -14,11 +15,12 @@ const getAllTasks = async (req, res) => {
     const where = { deleted: 0 };
     if (status) where.status = status;
 
-    const tasks = await Task.findAll({
-      attributes: ['id', 'name', 'description', 'status', 'dueDate', 'createdAt', 'updatedAt'],
-      where,
-      include: [{ model: StatusMaster, attributes: ['code', 'name'], where: { deleted: 0 } }],
-    });
+    // const tasks = await Task.findAll({
+    //   attributes: ['id', 'name', 'description', 'status', 'dueDate', 'createdAt', 'updatedAt'],
+    //   where,
+    //   include: [{ model: StatusMaster, attributes: ['code', 'name'], where: { deleted: 0 } }],
+    // });
+    const tasks = await getAllActiveTasks(req.query.status)
     ResponseBuilder.success(res, 200, messages.SUCCESS.TASK_RETRIEVED, { tasks });
   } catch (error) {
     ResponseBuilder.error(res, 500, messages.ERROR.SERVER_ERROR, error.message);
@@ -28,11 +30,12 @@ const getAllTasks = async (req, res) => {
 const getTasksByStatus = async (req, res) => {
   const { status } = req.params;
   try {
-    const tasks = await Task.findAll({
-      attributes: ['id', 'name', 'description', 'status', 'dueDate', 'createdAt', 'updatedAt'],
-      where: { status, deleted: 0 },
-      include: [{ model: StatusMaster, attributes: ['code', 'name'], where: { deleted: 0 } }],
-    });
+    // const tasks = await Task.findAll({
+    //   attributes: ['id', 'name', 'description', 'status', 'dueDate', 'createdAt', 'updatedAt'],
+    //   where: { status, deleted: 0 },
+    //   include: [{ model: StatusMaster, attributes: ['code', 'name'], where: { deleted: 0 } }],
+    // });
+    const tasks = await getTasksByStatusCode(req.params.status);
     if (tasks.length === 0) {
       return ResponseBuilder.error(res, 404, messages.ERROR.TASK_NOT_FOUND);
     }
@@ -45,11 +48,12 @@ const getTasksByStatus = async (req, res) => {
 const getTaskById = async (req, res) => {
   const { id } = req.params;
   try {
-    const task = await Task.findOne({
-      attributes: ['id', 'name', 'description', 'status', 'dueDate', 'createdAt', 'updatedAt'],
-      where: { id, deleted: 0 },
-      include: [{ model: StatusMaster, attributes: ['code', 'name'], where: { deleted: 0 } }],
-    });
+    // const task = await Task.findOne({
+    //   attributes: ['id', 'name', 'description', 'status', 'dueDate', 'createdAt', 'updatedAt'],
+    //   where: { id, deleted: 0 },
+    //   include: [{ model: StatusMaster, attributes: ['code', 'name'], where: { deleted: 0 } }],
+    // });
+    const task = await getTaskByIdWithStatus(req.params.id);
     if (!task) {
       return ResponseBuilder.error(res, 404, messages.ERROR.TASK_NOT_FOUND);
     }
@@ -65,11 +69,11 @@ const createTask = async (req, res) => {
     return ResponseBuilder.error(res, 400, messages.ERROR.VALIDATION_ERROR, error.details[0].message);
   }
 
-  const { name, description, due_date, status, teamMembers } = req.body;
-
   try {
+    const { name, description, due_date, status, teamMembers } = req.body;
     const taskStatus = status || 'TO_DO';
-    const statusExists = await StatusMaster.findOne({ where: { code: taskStatus, deleted: 0 } });
+    // const statusExists = await StatusMaster.findOne({ where: { code: taskStatus, deleted: 0 } });
+    const statusExists = await isValidStatus(taskStatus);
     if (!statusExists) {
       return ResponseBuilder.error(res, 400, messages.ERROR.INVALID_STATUS);
     }
@@ -83,31 +87,32 @@ const createTask = async (req, res) => {
       }
     }
 
-    const task = await sequelize.transaction(async (t) => {
-      const newTask = await Task.create(
-        {
-          name,
-          description,
-          status: taskStatus,
-          dueDate: due_date,
-          createdBy: req.user.id,
-          deleted: 0,
-        },
-        { transaction: t }
-      );
+    // const task = await sequelize.transaction(async (t) => {
+    //   const newTask = await Task.create(
+    //     {
+    //       name,
+    //       description,
+    //       status: taskStatus,
+    //       dueDate: due_date,
+    //       createdBy: req.user.id,
+    //       deleted: 0,
+    //     },
+    //     { transaction: t }
+    //   );
 
-      if (teamMembers && Array.isArray(teamMembers) && teamMembers.length > 0) {
-        const teamMemberData = teamMembers.map((userId) => ({
-          userId,
-          taskId: newTask.id,
-          createdBy: req.user.id,
-          deleted: 0,
-        }));
-        await TeamMember.bulkCreate(teamMemberData, { transaction: t });
-      }
+    //   if (teamMembers && Array.isArray(teamMembers) && teamMembers.length > 0) {
+    //     const teamMemberData = teamMembers.map((userId) => ({
+    //       userId,
+    //       taskId: newTask.id,
+    //       createdBy: req.user.id,
+    //       deleted: 0,
+    //     }));
+    //     await TeamMember.bulkCreate(teamMemberData, { transaction: t });
+    //   }
 
-      return newTask;
-    });
+    //   return newTask;
+    // });
+    const task = await createNewTask({ name, description, status: taskStatus, due_date }, teamMembers, req.user.id);
 
     ResponseBuilder.success(res, 201, messages.SUCCESS.TASK_CREATED, { task });
   } catch (error) {
@@ -116,36 +121,47 @@ const createTask = async (req, res) => {
 };
 
 const updateTask = async (req, res) => {
-  const { id } = req.params;
   const { error } = validateTaskUpdate(req.body);
   if (error) {
     return ResponseBuilder.error(res, 400, messages.ERROR.VALIDATION_ERROR, error.details[0].message);
   }
 
-  const { name, description, status, due_date } = req.body;
-
   try {
-    const task = await Task.findOne({ where: { id, deleted: 0 } });
-    if (!task) {
-      return ResponseBuilder.error(res, 404, messages.ERROR.TASK_NOT_FOUND);
+    const { id } = req.params;
+    const { name, description, status, due_date } = req.body;
+    // const task = await Task.findOne({ where: { id, deleted: 0 } });
+    // if (!task) {
+    //   return ResponseBuilder.error(res, 404, messages.ERROR.TASK_NOT_FOUND);
+    // }
+
+    // if (status) {
+    //   const statusExists = await StatusMaster.findOne({ where: { code: status, deleted: 0 } });
+    //   if (!statusExists) {
+    //     return ResponseBuilder.error(res, 400, messages.ERROR.INVALID_STATUS);
+    //   }
+    // }
+    if (status && !(await isValidStatus(status))) {
+      return ResponseBuilder.error(res, 400, messages.ERROR.INVALID_STATUS);
     }
 
-    if (status) {
-      const statusExists = await StatusMaster.findOne({ where: { code: status, deleted: 0 } });
-      if (!statusExists) {
-        return ResponseBuilder.error(res, 400, messages.ERROR.INVALID_STATUS);
-      }
-    }
-
+    // const updateData = {
+    //   name,
+    //   description: description || null,
+    //   status: status || task.status,
+    //   dueDate: due_date || task.dueDate,
+    //   updatedBy: req.user.id,
+    // };
     const updateData = {
       name,
       description: description || null,
-      status: status || task.status,
-      dueDate: due_date || task.dueDate,
+      status,
+      dueDate: due_date,
       updatedBy: req.user.id,
     };
 
-    await task.update(updateData);
+    const task = await updateExistingTask(id, updateData);
+    if (!task)
+      return ResponseBuilder.error(res, 404, messages.ERROR.TASK_NOT_FOUND);
     ResponseBuilder.success(res, 200, messages.SUCCESS.TASK_UPDATED, { task });
   } catch (error) {
     ResponseBuilder.error(res, 500, messages.ERROR.SERVER_ERROR, error.message);

@@ -1,9 +1,8 @@
 import User from '../user/user.model.js';
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
 import messages from '../../helper/constants/messages.js';
 import ResponseBuilder from '../../helper/responce-builder/responseBuilder.js';
 import { validateRegister, validateLogin, validateChangePassword, validateFirstChangePassword, validateForgotPassword, validateResetPassword } from './authValidation.js';
+import { generateToken, hashPassword, comparePassword } from './auth.util.js';
 
 const register = async (req, res) => {
   const { error } = validateRegister(req.body);
@@ -24,7 +23,7 @@ const register = async (req, res) => {
       return ResponseBuilder.error(res, 400, messages.ERROR.CONTACT_EXISTS);
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await hashPassword(password);
     const userCount = await User.count({ where: { deleted: 0 } });
     const isAdmin = userCount === 0 ? 1 : 0;
 
@@ -59,16 +58,12 @@ const login = async (req, res) => {
       return ResponseBuilder.error(res, 401, messages.ERROR.INVALID_EM_PASS);
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await comparePassword(password, user.password);
     if (!isPasswordValid) {
       return ResponseBuilder.error(res, 401, messages.ERROR.INVALID_EM_PASS);
     }
 
-    const token = jwt.sign(
-      { id: user.id, isAdmin: user.isAdmin, email: user.email },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
+    const token = generateToken(user);
 
     ResponseBuilder.success(res, 200, messages.SUCCESS.LOGIN_SUCCESS, { token, isFirstLogin: user.isFirstLogin });
   } catch (error) {
@@ -77,7 +72,7 @@ const login = async (req, res) => {
 };
 
 const changePassword = async (req, res) => {
-  const { error } = validateChangePassword(req.body); 
+  const { error } = validateChangePassword(req.body);
   if (error) {
     return ResponseBuilder.error(res, 400, messages.ERROR.VALIDATION_ERROR, error.details[0].message);
   }
@@ -97,7 +92,7 @@ const changePassword = async (req, res) => {
     }
 
     // Hash the new password
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const hashedPassword = await hashPassword(newPassword);
 
     // Update the user's password
     await user.update({
@@ -131,7 +126,7 @@ const firstChangePassword = async (req, res) => {
       return ResponseBuilder.error(res, 400, messages.ERROR.NOT_FIRST_LOGIN);
     }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const hashedPassword = await hashPassword(newPassword);
     await user.update({
       password: hashedPassword,
       isFirstLogin: 0,
@@ -159,11 +154,8 @@ const forgotPassword = async (req, res) => {
       return ResponseBuilder.error(res, 404, messages.ERROR.USER_NOT_FOUND);
     }
 
-    const token = jwt.sign(
-      { id: user.id, isAdmin: user.isAdmin, email: user.email },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
+    const token = generateToken(user);
+
     ResponseBuilder.success(res, 200, messages.ERROR.REDIRECT_CHANGE_PASS, { token });
   } catch (error) {
     ResponseBuilder.error(res, 500, messages.ERROR.SERVER_ERROR, error.message);
@@ -184,7 +176,7 @@ const resetPassword = async (req, res) => {
       return ResponseBuilder.error(res, 404, messages.ERROR.USER_NOT_FOUND);
     }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const hashedPassword = await hashPassword(newPassword);
     await user.update({
       password: hashedPassword,
       isFirstLogin: 0,
