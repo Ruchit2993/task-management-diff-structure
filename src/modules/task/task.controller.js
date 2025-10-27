@@ -7,7 +7,7 @@ import { sequelize } from '../../config/dbConnect.js';
 import messages from '../../helper/constants/messages.js';
 import ResponseBuilder from '../../helper/responce-builder/responseBuilder.js';
 import { validateTask, validateTaskUpdate, validateTaskPatch } from './taskValidation.js';
-import { getAllActiveTasks, getTaskByIdWithStatus, getTasksByStatusCode, isValidStatus, createNewTask, updateExistingTask } from './task.util.js';
+import { getAllActiveTasks, getTaskByIdWithStatus, getTasksByStatusCode, isValidStatus, createNewTask, updateExistingTask, addTaskComment, softDeleteTaskById } from './task.util.js';
 
 const getAllTasks = async (req, res) => {
   try {
@@ -227,13 +227,7 @@ const patchTask = async (req, res) => {
       }
 
       if (comment) {
-        await Comment.create({
-          userId: req.user.id,
-          taskId: id,
-          comment,
-          createdBy: req.user.id,
-          deleted: 0,
-        });
+        await addTaskComment(id, req.user.id, comment);
         updates.push('comment');
       }
 
@@ -253,11 +247,8 @@ const deleteTask = async (req, res) => {
       return ResponseBuilder.error(res, 404, messages.ERROR.TASK_NOT_FOUND);
     }
 
-    await task.update({
-      deleted: 1,
-      deletedAt: new Date(),
-      deletedBy: req.user.id,
-    });
+    const deleted = await softDeleteTaskById(id, req.user.id);
+    if (!deleted) return ResponseBuilder.error(res, 404, messages.ERROR.TASK_NOT_FOUND);
     ResponseBuilder.success(res, 200, messages.SUCCESS.TASK_DELETED);
   } catch (error) {
     ResponseBuilder.error(res, 500, messages.ERROR.SERVER_ERROR, error.message);

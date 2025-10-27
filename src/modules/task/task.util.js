@@ -101,4 +101,4 @@ const softDeleteTaskById = async (id, deletedBy) => {
   return task;
 };
 
-export { getTasksByStatusCode, getAllActiveTasks, getTaskByIdWithStatus, isValidStatus, createNewTask, updateExistingTask, addTaskComment };
+export { getTasksByStatusCode, getAllActiveTasks, getTaskByIdWithStatus, isValidStatus, createNewTask, updateExistingTask, addTaskComment, softDeleteTaskById };
